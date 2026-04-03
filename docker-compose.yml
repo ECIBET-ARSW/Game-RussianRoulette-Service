@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  game-russian-roulette:
+    build: .
+    ports:
+      - "8091:8091"
+    environment:
+      PORT: 8091
+      WALLETS_SERVICE_URL: http://wallets-service:8082
+    depends_on:
+      - wallets-service
+
+  wallets-service:
+    image: ecibet-wallets-service:latest
+    ports:
+      - "8082:8082"
