@@ -21,7 +21,7 @@ public class WalletClient {
     public boolean debit(String userId, BigDecimal amount, String description) {
         try {
             webClient.post()
-                    .uri("/api/wallets/{userId}/debit", userId)
+                    .uri("/api/v1/transactions/debit/{userId}", userId)
                     .bodyValue(Map.of("amount", amount, "description", description))
                     .retrieve()
                     .toBodilessEntity()
@@ -36,7 +36,7 @@ public class WalletClient {
     public boolean credit(String userId, BigDecimal amount, String description) {
         try {
             webClient.post()
-                    .uri("/api/wallets/{userId}/credit", userId)
+                    .uri("/api/v1/transactions/deposit/{userId}", userId)
                     .bodyValue(Map.of("amount", amount, "description", description))
                     .retrieve()
                     .toBodilessEntity()
