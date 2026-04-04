@@ -10,9 +10,10 @@ import java.util.List;
 @Service
 public class DeckService {
 
-    private static final int KINGS = 6;
-    private static final int ACES = 6;
-    private static final int JOKERS = 2;
+    private static final int KINGS = 8;
+    private static final int ACES = 8;
+    private static final int QUEENS = 8;
+    private static final int JOKERS = 6;
     private static final int CARDS_PER_PLAYER = 5;
 
     // Construye el mazo: 6 reyes + 6 ases + 2 jokers = 14 cartas
@@ -20,6 +21,7 @@ public class DeckService {
         List<Card> deck = new ArrayList<>();
         for (int i = 0; i < KINGS;   i++) deck.add(Card.KING);
         for (int i = 0; i < ACES;    i++) deck.add(Card.ACE);
+        for (int i = 0; i < QUEENS;  i++) deck.add(Card.QUEEN);
         for (int i = 0; i < JOKERS;  i++) deck.add(Card.JOKER);
         Collections.shuffle(deck);
         return deck;

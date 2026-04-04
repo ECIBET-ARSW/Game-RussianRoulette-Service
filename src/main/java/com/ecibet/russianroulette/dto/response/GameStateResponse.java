@@ -28,6 +28,10 @@ public class GameStateResponse {
     // Lista de jugadores con su estado (vivo/eliminado)
     private List<PlayerStateResponse> players;
 
+    // Disparos del revólver
+    private int shotsFired;
+    private int totalChambers;
+
     // Solo al terminar la partida
     private String winnerId;
     private String winnerUsername;
@@ -55,9 +59,10 @@ public class GameStateResponse {
     public static class PlayerStateResponse {
         private String userId;
         private String username;
-        private int cardCount;          // cuántas cartas tiene (no las cartas reales)
+        private int cardCount;
         private boolean eliminated;
         private boolean spectator;
         private boolean isCurrentTurn;
+        private int shotsFired;
     }
 }

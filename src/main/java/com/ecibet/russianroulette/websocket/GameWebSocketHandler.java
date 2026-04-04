@@ -46,6 +46,19 @@ public class GameWebSocketHandler {
         }
     }
 
+    // Jugador sin cartas pasa su turno
+    @MessageMapping("/room/{roomId}/pass")
+    public void pass(@DestinationVariable String roomId,
+                     @Payload String userId) {
+        try {
+            GameStateResponse state = gameService.pass(roomId, userId.replace("\"", ""));
+            broadcast(roomId, state);
+        } catch (Exception e) {
+            log.error("Error in pass for room {}: {}", roomId, e.getMessage());
+            broadcastError(roomId, e.getMessage());
+        }
+    }
+
     // Jugador jala el gatillo
     @MessageMapping("/room/{roomId}/shoot")
     public void shoot(@DestinationVariable String roomId,

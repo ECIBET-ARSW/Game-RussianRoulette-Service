@@ -103,12 +103,6 @@ public class GameService {
         GameState state = room.getGameState();
         validateTurn(room, req.getUserId());
 
-        // Si el turno anterior dejó a alguien sin cartas y no fue acusado, ese jugador gana
-        if (state.getLastPlayerEmptyHand() != null) {
-            Player winner = room.findPlayer(state.getLastPlayerEmptyHand());
-            return endGame(room, winner);
-        }
-
         Player player = room.findPlayer(req.getUserId());
 
         if (req.getCards().size() > 3)
@@ -128,10 +122,6 @@ public class GameService {
         ));
 
         advanceTurn(room);
-
-        // Si el jugador se quedó sin cartas, el siguiente puede acusarlo
-        // Si el siguiente decide jugar (no acusar), gana el que se quedó sin cartas
-        state.setLastPlayerEmptyHand(player.getHand().isEmpty() ? player.getUserId() : null);
         state.setTurnStartedAt(Instant.now());
 
         String msg = String.format("%s puso %d carta(s) y declaró: %d %s(s)",
@@ -143,15 +133,31 @@ public class GameService {
         return response;
     }
 
+    public GameStateResponse pass(String roomId, String userId) {
+        Room room = roomManager.getRoom(roomId);
+        validateTurn(room, userId, true);
+
+        Player player = room.findPlayer(userId);
+        if (!player.getHand().isEmpty())
+            throw new IllegalStateException("Cannot pass while holding cards");
+
+        room.getGameState().setLastPlay(null);
+        advanceTurn(room);
+        room.getGameState().setTurnStartedAt(Instant.now());
+
+        GameStateResponse response = buildStateResponse(room, "CARDS_PLAYED",
+                player.getUsername() + " pasó su turno");
+        response.setLastPlayerId(userId);
+        return response;
+    }
+
     public GameStateResponse accuse(String roomId, AccuseRequest req) {
         Room room = roomManager.getRoom(roomId);
         GameState state = room.getGameState();
-        validateTurn(room, req.getUserId());
+        validateTurn(room, req.getUserId(), true);
 
         if (state.getLastPlay() == null)
             throw new IllegalStateException("No play to accuse");
-
-        state.setLastPlayerEmptyHand(null);
 
         LastPlay last = state.getLastPlay();
         boolean wasLying = isLying(last, state.getActiveCard());
@@ -188,6 +194,7 @@ public class GameService {
 
         boolean eliminated = room.getRevolver().pullTrigger();
         Player shooter = room.findPlayer(userId);
+        shooter.setShotsFired(shooter.getShotsFired() + 1);
 
         state.setWaitingForShoot(false);
         state.setShooterPlayerId(null);
@@ -204,13 +211,21 @@ public class GameService {
 
             List<Player> alive = room.getActivePlayers();
             if (alive.size() == 1) return endGame(room, alive.get(0));
-        } else if (shooter.getHand().isEmpty()) {
-            // Sobrevivió el disparo y no tiene cartas → gana
-            return endGame(room, shooter);
         }
 
         // Nueva ronda: repartir cartas y alternar carta activa
-        startNewRound(room);
+        // Si sobrevivió, él inicia; si murió, inicia el siguiente en orden
+        List<Player> alive = room.getActivePlayers();
+        int nextTurnIndex;
+        if (!eliminated) {
+            nextTurnIndex = alive.indexOf(shooter);
+        } else {
+            // shooter ya fue eliminado, alive ya no lo contiene
+            // El índice del shooter antes de eliminarse era su posición en la lista anterior
+            // Usamos el índice actual del turno que apuntaba al shooter, ahora apunta al siguiente
+            nextTurnIndex = state.getCurrentTurnIndex() % alive.size();
+        }
+        startNewRound(room, nextTurnIndex);
 
         GameStateResponse response = buildStateResponse(room, "SHOT_RESULT",
                 eliminated ? shooter.getUsername() + " fue eliminado" : shooter.getUsername() + " sobrevivió");
@@ -221,7 +236,7 @@ public class GameService {
     // ── Internal helpers ─────────────────────────────────────────────────────
 
     private boolean isLying(LastPlay play, Card activeCard) {
-        // Miente si alguna carta real no es la carta activa ni joker
+        // Miente si alguna carta real no es la carta activa de la ronda ni joker
         boolean cardsAreFake = play.getActualCards().stream()
                 .anyMatch(c -> c != activeCard && c != Card.JOKER);
         // Miente si la cantidad declarada no coincide con las cartas jugadas
@@ -230,6 +245,10 @@ public class GameService {
     }
 
     private void validateTurn(Room room, String userId) {
+        validateTurn(room, userId, false);
+    }
+
+    private void validateTurn(Room room, String userId, boolean isAccuseAction) {
         if (room.getStatus() != RoomStatus.IN_PROGRESS)
             throw new IllegalStateException("Game is not in progress");
         if (room.getGameState().isWaitingForShoot())
@@ -241,7 +260,7 @@ public class GameService {
             throw new IllegalStateException("Not your turn");
 
         Player player = room.findPlayer(userId);
-        if (player != null && player.getHand().isEmpty())
+        if (player != null && player.getHand().isEmpty() && !isAccuseAction)
             throw new IllegalStateException("No cards to play");
     }
 
@@ -259,14 +278,20 @@ public class GameService {
         }
     }
 
-    private void startNewRound(Room room) {
+    private void startNewRound(Room room, int startingTurnIndex) {
         GameState state = room.getGameState();
         state.setCurrentRound(state.getCurrentRound() + 1);
-        state.setActiveCard(state.getActiveCard() == Card.KING ? Card.ACE : Card.KING);
-        state.setCurrentTurnIndex(0);
+        // Alterna entre KING, QUEEN y ACE
+        Card next = switch (state.getActiveCard()) {
+            case KING -> Card.QUEEN;
+            case QUEEN -> Card.ACE;
+            default -> Card.KING;
+        };
+        state.setActiveCard(next);
+        state.setCurrentTurnIndex(startingTurnIndex);
         state.setLastPlay(null);
-        state.setLastPlayerEmptyHand(null);
         state.setTurnStartedAt(Instant.now());
+        dealCards(room);
     }
 
     private GameStateResponse endGame(Room room, Player winner) {
@@ -310,6 +335,7 @@ public class GameService {
                         .eliminated(p.isEliminated())
                         .spectator(p.isSpectator())
                         .isCurrentTurn(p.getUserId().equals(currentTurnId))
+                        .shotsFired(p.getShotsFired())
                         .build())
                 .toList();
 
@@ -322,6 +348,8 @@ public class GameService {
                 .currentTurnUsername(currentTurnUsername)
                 .turnTimerSeconds(turnTimer)
                 .players(playerStates)
+                .shotsFired(room.getRevolver() != null ? room.getRevolver().getShotsFired() : 0)
+                .totalChambers(6)
                 .build();
     }
 }

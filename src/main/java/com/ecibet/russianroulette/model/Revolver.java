@@ -10,6 +10,7 @@ public class Revolver {
     private static final int CHAMBERS = 6;
     private final boolean[] cylinder = new boolean[CHAMBERS]; // true = bala
     private int currentPosition;
+    private int shotsFired = 0;
 
     public Revolver() {
         Random random = new Random();
@@ -19,10 +20,10 @@ public class Revolver {
         currentPosition = random.nextInt(CHAMBERS);
     }
 
-    // Retorna true si el jugador muere, false si sobrevive
     public boolean pullTrigger() {
         boolean fired = cylinder[currentPosition];
         currentPosition = (currentPosition + 1) % CHAMBERS;
+        shotsFired++;
         return fired;
     }
 }

@@ -11,6 +11,7 @@ public class Player {
     private final String username;
     private List<Card> hand = new ArrayList<>();
     private boolean eliminated = false;
-    private boolean ready = false;       // listo para iniciar en lobby
-    private boolean spectator = false;   // eliminado pero sigue viendo
+    private boolean ready = false;
+    private boolean spectator = false;
+    private int shotsFired = 0;
 }
