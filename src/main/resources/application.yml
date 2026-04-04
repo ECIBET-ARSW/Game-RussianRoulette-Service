@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: ecibet-russian-roulette-service
+
+server:
+  port: ${PORT:8091}
+
+ecibet:
+  wallets-service:
+    url: ${WALLETS_SERVICE_URL:http://localhost:8082}
+  game:
+    max-rooms: 5
+    max-players-per-room: 4
+    min-players-to-start: 2
+    turn-timer-seconds: 30
+    default-buy-in: 10000
+
+logging:
+  level:
+    com.ecibet: DEBUG
