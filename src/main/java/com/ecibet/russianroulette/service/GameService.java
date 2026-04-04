@@ -296,9 +296,8 @@ public class GameService {
 
     private GameStateResponse endGame(Room room, Player winner) {
         room.setStatus(RoomStatus.FINISHED);
-        // TODO: habilitar cuando Wallets-Service esté corriendo
-        // walletClient.credit(winner.getUserId(), room.getPot(), "Liar's Bar - winner payout");
-        log.info("[DEV] Skipping wallet credit for winner {} amount {}", winner.getUserId(), room.getPot());
+        boolean credited = walletClient.credit(winner.getUserId(), room.getPot(), "Liar's Bar - winner payout");
+        if (!credited) log.error("Failed to credit winner {} amount {}", winner.getUserId(), room.getPot());
         log.info("Game over in room {}. Winner: {}", room.getId(), winner.getUserId());
 
         GameStateResponse response = buildStateResponse(room, "GAME_OVER",
@@ -311,10 +310,8 @@ public class GameService {
     }
 
     private void debitBuyIn(String userId, BigDecimal buyIn) {
-        // TODO: habilitar cuando Wallets-Service esté corriendo
-        // boolean ok = walletClient.debit(userId, buyIn, "Liar's Bar - buy-in");
-        // if (!ok) throw new IllegalStateException("Insufficient funds for buy-in");
-        log.info("[DEV] Skipping wallet debit for user {} amount {}", userId, buyIn);
+        boolean ok = walletClient.debit(userId, buyIn, "Liar's Bar - buy-in");
+        if (!ok) throw new IllegalStateException("Insufficient funds for buy-in");
     }
 
     private GameStateResponse buildStateResponse(Room room, String type, String message) {
