@@ -40,12 +40,18 @@ public class GameService {
     }
 
     public Room joinRoom(String roomId, String userId, String username) {
+        Room room = roomManager.getRoom(roomId);
+
+        // Permitir re-entrar a la misma sala
+        if (room.findPlayer(userId) != null)
+            return room;
+
+        // Evitar estar en múltiples salas
+        if (roomManager.isUserInAnyRoom(userId))
+            throw new IllegalStateException("Player is already in another room");
+
         if (!roomManager.canJoin(roomId))
             throw new IllegalStateException("Cannot join room " + roomId);
-
-        Room room = roomManager.getRoom(roomId);
-        if (room.findPlayer(userId) != null)
-            throw new IllegalStateException("Player already in room");
 
         room.getPlayers().add(new Player(userId, username));
         walletEventPublisher.publishDebit(userId, room.getBuyIn(), roomId, "Liar's Bar - buy-in");
