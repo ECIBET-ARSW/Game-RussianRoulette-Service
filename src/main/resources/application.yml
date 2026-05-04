@@ -14,7 +14,7 @@ server:
 
 ecibet:
   game:
-    max-rooms: 5
+    max-rooms: 20
     max-players-per-room: 4
     min-players-to-start: 2
     turn-timer-seconds: 30

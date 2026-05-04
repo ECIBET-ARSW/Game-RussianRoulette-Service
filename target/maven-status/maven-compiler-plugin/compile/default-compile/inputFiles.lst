@@ -16,6 +16,7 @@ D:\ECIBET Definitivo\Game-RussianRoulette-Service\src\main\java\com\ecibet\russi
 D:\ECIBET Definitivo\Game-RussianRoulette-Service\src\main\java\com\ecibet\russianroulette\dto\request\PlayCardsRequest.java
 D:\ECIBET Definitivo\Game-RussianRoulette-Service\src\main\java\com\ecibet\russianroulette\model\Room.java
 D:\ECIBET Definitivo\Game-RussianRoulette-Service\src\main\java\com\ecibet\russianroulette\dto\request\JoinRoomRequest.java
+D:\ECIBET Definitivo\Game-RussianRoulette-Service\src\main\java\com\ecibet\russianroulette\config\CustomCorsFilter.java
 D:\ECIBET Definitivo\Game-RussianRoulette-Service\src\main\java\com\ecibet\russianroulette\dto\response\RoomResponse.java
 D:\ECIBET Definitivo\Game-RussianRoulette-Service\src\main\java\com\ecibet\russianroulette\config\RabbitMQConfig.java
 D:\ECIBET Definitivo\Game-RussianRoulette-Service\src\main\java\com\ecibet\russianroulette\dto\request\AccuseRequest.java
