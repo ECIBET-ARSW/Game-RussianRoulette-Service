@@ -44,6 +44,19 @@ public class RoomManager {
                 && !room.isFull(maxPlayers);
     }
 
+    public boolean isUserInAnyRoom(String userId) {
+        return rooms.values().stream()
+                .anyMatch(r -> r.getStatus() == RoomStatus.WAITING
+                        && r.findPlayer(userId) != null);
+    }
+
+    public Room findRoomByUserId(String userId) {
+        return rooms.values().stream()
+                .filter(r -> r.findPlayer(userId) != null)
+                .findFirst()
+                .orElse(null);
+    }
+
     public void removeRoom(String roomId) {
         rooms.remove(roomId);
     }

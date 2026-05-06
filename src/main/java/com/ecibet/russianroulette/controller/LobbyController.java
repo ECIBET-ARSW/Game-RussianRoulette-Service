@@ -100,9 +100,9 @@ public class LobbyController {
         res.setStatus(room.getStatus());
         res.setBuyIn(room.getBuyIn());
         res.setPot(room.getPot());
-        res.setPlayerCount(room.getPlayers().size());
+        res.setPlayerCount((int) room.getPlayers().stream().filter(p -> !p.isEliminated()).count());
         res.setMaxPlayers(roomManager.getMaxPlayers());
-        res.setPlayerNames(room.getPlayers().stream().map(p -> p.getUsername()).toList());
+        res.setPlayerNames(room.getPlayers().stream().filter(p -> !p.isEliminated()).map(p -> p.getUsername()).toList());
         return res;
     }
 }

@@ -1,6 +1,6 @@
 package com.ecibet.russianroulette.service;
 
-import com.ecibet.russianroulette.client.WalletClient;
+import com.ecibet.russianroulette.messaging.WalletEventPublisher;
 import com.ecibet.russianroulette.dto.request.AccuseRequest;
 import com.ecibet.russianroulette.dto.request.PlayCardsRequest;
 import com.ecibet.russianroulette.dto.response.GameStateResponse;
@@ -22,7 +22,7 @@ public class GameService {
 
     private final RoomManager roomManager;
     private final DeckService deckService;
-    private final WalletClient walletClient;
+    private final WalletEventPublisher walletEventPublisher;
 
     @Value("${ecibet.game.min-players-to-start}") private int minPlayers;
     @Value("${ecibet.game.turn-timer-seconds}") private int turnTimer;
@@ -33,22 +33,28 @@ public class GameService {
         Room room = roomManager.createRoom(hostId, username, name, buyIn);
         Player host = new Player(hostId, username);
         room.getPlayers().add(host);
-        debitBuyIn(hostId, buyIn);
+        walletEventPublisher.publishDebit(hostId, buyIn, room.getId(), "Liar's Bar - buy-in");
         room.setPot(buyIn);
         log.info("Room created: {} by {}", room.getId(), hostId);
         return room;
     }
 
     public Room joinRoom(String roomId, String userId, String username) {
+        Room room = roomManager.getRoom(roomId);
+
+        // Permitir re-entrar a la misma sala
+        if (room.findPlayer(userId) != null)
+            return room;
+
+        // Evitar estar en múltiples salas
+        if (roomManager.isUserInAnyRoom(userId))
+            throw new IllegalStateException("Player is already in another room");
+
         if (!roomManager.canJoin(roomId))
             throw new IllegalStateException("Cannot join room " + roomId);
 
-        Room room = roomManager.getRoom(roomId);
-        if (room.findPlayer(userId) != null)
-            throw new IllegalStateException("Player already in room");
-
         room.getPlayers().add(new Player(userId, username));
-        debitBuyIn(userId, room.getBuyIn());
+        walletEventPublisher.publishDebit(userId, room.getBuyIn(), roomId, "Liar's Bar - buy-in");
         room.setPot(room.getPot().add(room.getBuyIn()));
         return room;
     }
@@ -57,7 +63,7 @@ public class GameService {
         Room room = roomManager.getRoom(roomId);
         if (room.getStatus() == RoomStatus.WAITING) {
             room.getPlayers().removeIf(p -> p.getUserId().equals(userId));
-            walletClient.credit(userId, room.getBuyIn(), "Buy-in refund - left lobby");
+            walletEventPublisher.publishCredit(userId, room.getBuyIn(), roomId, "Liar's Bar - buy-in refund");
             room.setPot(room.getPot().subtract(room.getBuyIn()));
             if (room.getPlayers().isEmpty()) roomManager.removeRoom(roomId);
             else if (room.getHostId().equals(userId))
@@ -296,9 +302,7 @@ public class GameService {
 
     private GameStateResponse endGame(Room room, Player winner) {
         room.setStatus(RoomStatus.FINISHED);
-        // TODO: habilitar cuando Wallets-Service esté corriendo
-        // walletClient.credit(winner.getUserId(), room.getPot(), "Liar's Bar - winner payout");
-        log.info("[DEV] Skipping wallet credit for winner {} amount {}", winner.getUserId(), room.getPot());
+        walletEventPublisher.publishCredit(winner.getUserId(), room.getPot(), room.getId(), "Liar's Bar - winner payout");
         log.info("Game over in room {}. Winner: {}", room.getId(), winner.getUserId());
 
         GameStateResponse response = buildStateResponse(room, "GAME_OVER",
@@ -308,13 +312,6 @@ public class GameService {
 
         roomManager.removeRoom(room.getId());
         return response;
-    }
-
-    private void debitBuyIn(String userId, BigDecimal buyIn) {
-        // TODO: habilitar cuando Wallets-Service esté corriendo
-        // boolean ok = walletClient.debit(userId, buyIn, "Liar's Bar - buy-in");
-        // if (!ok) throw new IllegalStateException("Insufficient funds for buy-in");
-        log.info("[DEV] Skipping wallet debit for user {} amount {}", userId, buyIn);
     }
 
     private GameStateResponse buildStateResponse(Room room, String type, String message) {

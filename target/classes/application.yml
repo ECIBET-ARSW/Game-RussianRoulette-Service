@@ -2,14 +2,19 @@ spring:
   application:
     name: ecibet-russian-roulette-service
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:admin}
+    password: ${RABBITMQ_PASSWORD:admin123}
+    virtual-host: ${RABBITMQ_VHOST:/}
+
 server:
   port: ${PORT:8091}
 
 ecibet:
-  wallets-service:
-    url: ${WALLETS_SERVICE_URL:http://localhost:8082}
   game:
-    max-rooms: 5
+    max-rooms: 20
     max-players-per-room: 4
     min-players-to-start: 2
     turn-timer-seconds: 30
