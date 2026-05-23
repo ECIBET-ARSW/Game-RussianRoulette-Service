@@ -13,4 +13,5 @@ public class GameState {
     private boolean waitingForShoot = false;
     private String shooterPlayerId;
     private Instant turnStartedAt;
+    private boolean firstTurn = true;
 }

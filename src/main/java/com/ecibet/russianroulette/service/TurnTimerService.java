@@ -36,8 +36,9 @@ public class TurnTimerService {
         GameState state = room.getGameState();
         if (state == null || state.getTurnStartedAt() == null) return;
 
-        long elapsed = Instant.now().getEpochSecond() - state.getTurnStartedAt().getEpochSecond();
-        if (elapsed < turnTimerSeconds) return;
+        long elapsed = Instant.now().toEpochMilli() - state.getTurnStartedAt().toEpochMilli();
+        long effectiveTimer = state.isFirstTurn() ? (turnTimerSeconds * 1000L + 5000L) : (turnTimerSeconds * 1000L);
+        if (elapsed < effectiveTimer) return;
 
         try {
             // Si está esperando disparo, dispara automáticamente

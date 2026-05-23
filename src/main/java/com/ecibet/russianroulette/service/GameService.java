@@ -127,6 +127,7 @@ public class GameService {
                 req.getDeclaredCount()
         ));
 
+        state.setFirstTurn(false);
         advanceTurn(room);
         state.setTurnStartedAt(Instant.now());
 
@@ -148,6 +149,7 @@ public class GameService {
             throw new IllegalStateException("Cannot pass while holding cards");
 
         room.getGameState().setLastPlay(null);
+        room.getGameState().setFirstTurn(false);
         advanceTurn(room);
         room.getGameState().setTurnStartedAt(Instant.now());
 
